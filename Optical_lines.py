@@ -62,6 +62,16 @@ def classify(gem_1):
     k_grp[k_grp == 0] = 3
     gem_1['BPT_index'] = k_grp
     
+    blue_index = np.zeros(len(gem_1))
+    blue_index[(gem_1.logo3hb>blue_agn(gem_1.logo2hb))&(gem_1.logo3hb>blue_liner(gem_1.logo2hb))] = 4 # AGN
+    blue_index[(gem_1.logo3hb>blue_agn(gem_1.logo2hb))&(gem_1.logo3hb<=blue_liner(gem_1.logo2hb))] = 3 # LINER
+    blue_index[(gem_1.logo3hb<=blue_agn(gem_1.logo2hb))&(gem_1.logo3hb>0.3)] = 2 # SFG COMP
+    blue_index[(gem_1.logo3hb<=blue_agn(gem_1.logo2hb))&(gem_1.logo3hb<=0.3)] = 1 #SFG
+    blue_index[(gem_1.logo2hb>=0.92)&(gem_1.logo3hb>blue_liner(gem_1.logo2hb))] = 4
+    blue_index[(gem_1.logo2hb>=0.92)&(gem_1.logo3hb<blue_liner(gem_1.logo2hb))] = 3
+    
+    
+    gem_1['Blue_index'] = blue_index
     return gem_1
         
         
@@ -120,19 +130,25 @@ def plot_blue(gem_1):
     x = np.linspace(-5,0.4,len(gem_1))
     x_agn = np.linspace(-3,0.9,len(gem_1))
     x_liner = np.linspace(0.72,2,len(gem_1))
-    sns.scatterplot(x=gem_1.logo2hb[gem_1.BPT_index==1],      y=gem_1.logo3hb[gem_1.BPT_index==1],marker='^',label='AGN',s=40, edgecolor = 'black')
+    x_comp = np.linspace(0.1,1.1,100)
     
-    sns.scatterplot(x=gem_1.logo2hb[gem_1.BPT_index==4], y=gem_1.logo3hb[gem_1.BPT_index==4],marker='*',label='Composite',s=90, edgecolor = 'black')
+    sns.scatterplot(x=gem_1.logo2hb[gem_1.Blue_index==4], y=gem_1.logo3hb[gem_1.Blue_index==4],marker='^',label='AGN',s=40, edgecolor = 'black')
     
-    sns.scatterplot(x=gem_1.logo2hb[gem_1.BPT_index==3], y=gem_1.logo3hb[gem_1.BPT_index==3],marker='*', color = 'purple',label='SFG',s=90, edgecolor = 'black')
+    sns.scatterplot(x=gem_1.logo2hb[gem_1.Blue_index==2], y=gem_1.logo3hb[gem_1.Blue_index==2],marker='*',label='Comp',s=90, edgecolor = 'black')
+    
+    sns.scatterplot(x=gem_1.logo2hb[gem_1.Blue_index==3], y=gem_1.logo3hb[gem_1.Blue_index==3],marker='^', color = 'purple',label='LINER',s=90, edgecolor = 'black')
+    
+    sns.scatterplot(x=gem_1.logo2hb[gem_1.Blue_index==1], y=gem_1.logo3hb[gem_1.Blue_index==1],marker='*', color = 'purple',label='SFG',s=90, edgecolor = 'black')
     
     sns.lineplot(x=x_agn,y = blue_agn(x_agn), color = 'red',label='Lamareille (2010)')
     sns.lineplot(x=x_liner,y = blue_liner(x_liner), color='red')
+    sns.lineplot(x=x_comp,y=comp_a(x_comp),color='red')
+    sns.lineplot(x=x_comp,y=comp_b(x_comp),color='red')
     plt.axhline(y=0.3, xmax=0.75, color = 'red')
     
     plt.text(-1.8,1.4, 'Sy2', fontsize = 12)
     plt.text(-1.8,-1, 'SFGs', fontsize = 12)
-    plt.text(0.5,-1, 'LINERs', fontsize = 12)
+    plt.text(1.5,-1, 'LINERs', fontsize = 12)
     #plt.xlim(-2,1.5)
     #plt.ylim(-2,2)
     plt.legend(fontsize=12,markerscale=1.2,frameon=True)
