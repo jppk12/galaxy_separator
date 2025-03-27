@@ -21,45 +21,29 @@ if module_path not in sys.path:
     sys.path.append(module_path)
     
 from lum_functions import *
-#--------------------------------------#
-# Load the data with spectral info
-#--------------------------------------#
-file = input('Enter the path to the file or press enter to use the default: ')
-if file == '':
-	g09_path = '/Users/jahang/Documents/PhD/AGN Catalogue/Xmatched/G09/GAMA/G09_catwise_speclines.csv'
-	g23_path = '/Users/jahang/Documents/PhD/AGN Catalogue/Xmatched/G23/GAMA/G23_catwise_speclines.csv'
 
-g09 = pd.read_csv(g09_path)
-g23 = pd.read_csv(g23_path)
+#------------------#
+# Some functions
+#------------------#
 
-#-----------------------------#
-# Treating the emission lines
-#-----------------------------#
-def emission_corr(gem_1,NIIR_FLUX,NIIB_FLUX,OIIR_FLUX,OIIB_FLUX,OIIIR_FLUX,OIIIB_FLUX,
-                    HA_FLUX,HA_EW,HB_FLUX,HB_EW):
+def emission_corr(gem_1,n2r = 'NIIR_FLUX',o2r = 'OIIR_FLUX',o2b = 'OIIB_FLUX',o3r = 'OIIIR_FLUX',
+                  o3b = 'OIIIB_FLUX',ha = 'HA_FLUX',ha_ew = 'HA_EW',hb = 'HB_FLUX',hb_ew = 'HB_EW'):
     
-    gem_1['NII_corr'] = N_corr(gem_1.NIIR_FLUX)
-    gem_1['OIII_corr'] = O_corr(gem_1.OIIIB_FLUX, gem_1.OIIIR_FLUX)
-    gem_1['OII_corr'] = O_corr(gem_1.OIIB_FLUX, gem_1.OIIR_FLUX)
-    gem_1['HA_corr'] = H_corr(gem_1.HA_FLUX, gem_1.HA_EW)
-    gem_1['HB_corr'] = H_corr(gem_1.HB_FLUX, gem_1.HB_EW)
-    gem_1['OII_corr'] = O2_corr(gem_1.OIIB_EW, gem_1.OIIR_EW)
-    gem_1['HB_EW_corr'] = N_corr(gem_1.HB_EW)
+    gem_1['NII_corr'] = N_corr(gem_1[n2r])
+    gem_1['OIII_corr'] = O_corr(gem_1[o3b], gem_1[o3r])
+    gem_1['OII_corr'] = O_corr(gem_1[o2b], gem_1[o2r])
+    gem_1['HA_corr'] = H_corr(gem_1[ha],gem_1[ha_ew])
+    gem_1['HB_corr'] = H_corr(gem_1[hb],gem_1[hb_ew])
     
     gem_1['logn2ha'] = np.log10(gem_1.NII_corr/gem_1.HA_corr)
     gem_1['logo3hb'] = np.log10(gem_1.OIII_corr/gem_1.HB_corr)
-    gem_1['logo2hb'] = np.log10(gem_1.OII_corr/gem_1.HB_EW_corr)
+    gem_1['logo2hb'] = np.log10(gem_1.OII_corr/gem_1.HB_corr)
     
     return gem_1
-    
-g09 = emission_corr(g09,'NIIR_FLUX','NIIB_FLUX','OIIR_FLUX','OIIB_FLUX','OIIIR_FLUX','OIIIB_FLUX',
-                    'HA_FLUX','HA_EW','HB_FLUX','HB_EW')
-g23 = emission_corr(g23,'NIIR_FLUX','NIIB_FLUX','OIIR_FLUX','OIIB_FLUX','OIIIR_FLUX','OIIIB_FLUX',
-                    'HA_FLUX','HA_EW','HB_FLUX','HB_EW')
 
-#---------------------#
-#Selection criteria
-#---------------------#
+#-------------------------#
+# BPT Selection criteria
+#-------------------------#
 
 def kewley(x):
     return 0.61/(x-0.47) + 1.19
@@ -79,15 +63,26 @@ def classify(gem_1):
     gem_1['BPT_index'] = k_grp
     
     return gem_1
+        
+        
+#-----------------------------#
+# The Blue Diagram
+#-----------------------------#
+
+def blue_agn(x):
+    return (0.11/(x-0.92)) + 0.85
     
-g09 = classify(g09)
-g23 = classify(g23)
-
-#----------------------#
-#BPT diagram
-#----------------------#
-plt.figure(figsize=(12,8))
-
+def blue_liner(x):
+    return (0.95*x) - 0.40
+    
+def comp_a(x):
+    return -(x-1)**2 - 0.1*x +0.25
+    
+def comp_b(x):
+    return (x-0.2)**2 - 0.60
+#--------------------#
+# How to plot
+#--------------------#
 def plot_bpt(gem_1):
     x = np.linspace(-5,0.4,len(gem_1))
     x_kauf=np.linspace(-5,0,len(gem_1))
@@ -107,8 +102,8 @@ def plot_bpt(gem_1):
     plt.text(-1.8,1.4, 'Sy2', fontsize = 12)
     plt.text(-1.8,-1, 'SFGs', fontsize = 12)
     plt.text(0.5,-1, 'LINERs', fontsize = 12)
-    plt.xlim(-2,1.5)
-    plt.ylim(-2,2)
+    #plt.xlim(-2,1.5)
+    #plt.ylim(-2,2)
     plt.legend(fontsize=12,markerscale=1.2,frameon=True)
     plt.xticks(fontsize=12)
     plt.yticks(fontsize=12)
@@ -120,40 +115,8 @@ def plot_bpt(gem_1):
     #plt.savefig('/Users/jahang/OneDrive - Macquarie University/Luminosity Functions/Paper_data/BPT_z.pdf',
     #            format='pdf',bbox_inches='tight')
     
-plt.subplot(121)
-plot_bpt(g09)
-plt.subplot(122)
-plot_bpt(g23)
-plt.show(block=False)
-plt.pause(2)
-plt.close()
-
-#-----------------------------#
-# The Blue Diagram
-#-----------------------------#
-# SFG - AGN
-#----------#
-def blue_agn(x):
-    return (0.11/(x-0.92)) + 0.85
-    
-def blue_liner(x):
-    return (0.95*x) - 0.40
-    
-def comp_a(x):
-    return -(x-1)**2 - 0.1*x +0.25
-    
-def comp_b(x):
-    return (x-0.2)**2 - 0.60
-    
-
-#----------------------#
-# Blue diagram
-#----------------------#
-plt.figure(figsize=(12,8))
-
-def plot_bpt(gem_1):
-    gem_1 = gem_1[(gem_1.HA_FLUX/gem_1.HA_FLUX_ERR)>5]
-    print(gem_1.BPT_index.value_counts())
+    return
+def plot_blue(gem_1):
     x = np.linspace(-5,0.4,len(gem_1))
     x_agn = np.linspace(-3,0.9,len(gem_1))
     x_liner = np.linspace(0.72,2,len(gem_1))
@@ -170,8 +133,8 @@ def plot_bpt(gem_1):
     plt.text(-1.8,1.4, 'Sy2', fontsize = 12)
     plt.text(-1.8,-1, 'SFGs', fontsize = 12)
     plt.text(0.5,-1, 'LINERs', fontsize = 12)
-    plt.xlim(-2,1.5)
-    plt.ylim(-2,2)
+    #plt.xlim(-2,1.5)
+    #plt.ylim(-2,2)
     plt.legend(fontsize=12,markerscale=1.2,frameon=True)
     plt.xticks(fontsize=12)
     plt.yticks(fontsize=12)
@@ -182,12 +145,94 @@ def plot_bpt(gem_1):
     plt.tight_layout()
     #plt.savefig('/Users/jahang/OneDrive - Macquarie University/Luminosity Functions/Paper_data/BPT_z.pdf',
     #            format='pdf',bbox_inches='tight')
+    return
+#--------------------------------------#
+# Load the data with spectral info
+#--------------------------------------#
+
+file = '/Users/jahang/Downloads/gal_line_dr7_v5_2.csv'
+data = pd.read_csv(file)
+data['HA_EW'] = data.H_ALPHA_FLUX/data.H_ALPHA_CONT
+data['HB_EW'] = data.H_BETA_FLUX/data.H_BETA_CONT
+
+g09_path = '/Users/jahang/Documents/PhD/AGN Catalogue/Xmatched/G09/GAMA/G09_catwise_speclines.csv'
+g23_path = '/Users/jahang/Documents/PhD/AGN Catalogue/Xmatched/G23/GAMA/G23_catwise_speclines.csv'
+g09 = pd.read_csv(g09_path)
+g23 = pd.read_csv(g23_path)
+
+#-----------------------------#
+# Treating the emission lines
+#-----------------------------#    
+g09 = emission_corr(g09,n2r='NIIR_FLUX',o2r='OIIR_FLUX',o2b='OIIB_FLUX',o3r='OIIIR_FLUX',
+                    o3b='OIIIB_FLUX',ha='HA_FLUX',ha_ew='HA_EW',hb='HB_FLUX',hb_ew='HB_EW')
+
+g23 = emission_corr(g23,n2r='NIIR_FLUX',o2r='OIIR_FLUX',o2b='OIIB_FLUX',o3r='OIIIR_FLUX',
+                    o3b='OIIIB_FLUX',ha='HA_FLUX',ha_ew='HA_EW',hb='HB_FLUX',hb_ew='HB_EW')
+
+data = emission_corr(data,n2r='NII_6548_FLUX',o3r='OIII_5007_FLUX',o2b='OII_3726_FLUX',o2r='OII_3729_FLUX',
+                     ha='H_ALPHA_FLUX', ha_ew='HA_EW',hb='H_BETA_FLUX',hb_ew='HB_EW',o3b='OIII_5007_FLUX')
+
+data.OIII_corr = data.OIII_corr/2
+data.logo3hb = np.log10(data.OIII_corr/data.HB_corr)
     
-    
+
+g09 = g09[((g09.HA_FLUX/g09.HA_FLUX_ERR)>=5)&((g09.HB_FLUX/g09.HB_FLUX_ERR)>=5)&
+          ((g09.NIIR_FLUX/g09.NIIR_FLUX_ERR)>=5)&((g09.NIIB_FLUX/g09.NIIB_FLUX_ERR)>=5)&
+          ((g09.OIIR_FLUX/g09.OIIR_FLUX_ERR)>=5)&((g09.OIIB_FLUX/g09.OIIB_FLUX_ERR)>=5)&
+          ((g09.OIIIR_FLUX/g09.OIIIR_FLUX_ERR)>=5)&((g09.OIIIB_FLUX/g09.OIIIB_FLUX_ERR)>=5)]
+
+g23 = g23[((g23.HA_FLUX/g23.HA_FLUX_ERR)>=5)&((g23.HB_FLUX/g23.HB_FLUX_ERR)>=5)&
+          ((g23.NIIR_FLUX/g23.NIIR_FLUX_ERR)>=5)&((g23.NIIB_FLUX/g23.NIIB_FLUX_ERR)>=5)&
+          ((g23.OIIR_FLUX/g23.OIIR_FLUX_ERR)>=5)&((g23.OIIB_FLUX/g23.OIIB_FLUX_ERR)>=5)&
+          ((g23.OIIIR_FLUX/g23.OIIIR_FLUX_ERR)>=5)&((g23.OIIIB_FLUX/g23.OIIIB_FLUX_ERR)>=5)]
+
+g09 = classify(g09)
+g23 = classify(g23)
+#----------------------#
+# GAMA
+#----------------------#
+plt.figure(figsize=(10,6))
 plt.subplot(121)
 plot_bpt(g09)
+plt.title('G09')
 plt.subplot(122)
 plot_bpt(g23)
+plt.title('G23')
 plt.show(block=False)
+plt.pause(2)
+plt.close()
+
+plt.figure(figsize=(10,6))    
+
+plt.subplot(121)
+plot_blue(g09)
+plt.subplot(122)
+plot_blue(g23)
+plt.show(block=False)
+plt.pause(2)
+plt.close()
+
+#-------------#
+# SDSS
+#-------------#
+data=data[((data.NII_6548_FLUX/data.NII_6548_FLUX_ERR)>=5)&
+    ((data.OIII_5007_FLUX/data.OIII_5007_FLUX_ERR)>=5)&
+    ((data.OII_3726_FLUX/data.OII_3726_FLUX_ERR)>=5)&
+    ((data.OII_3729_FLUX/data.OII_3729_FLUX_ERR)>=5)&
+    ((data.H_ALPHA_FLUX/data.H_ALPHA_FLUX_ERR)>=5)&
+    ((data.H_BETA_FLUX/data.H_BETA_FLUX_ERR)>=5)]
+    
+data = classify(data)
+data1 = data[data.BPT_index==3]
+plt.figure(figsize=(12,7))
+plt.subplot(121)
+plot_bpt(data)
+plt.xlim(-2.5,1.5)
+
+plt.subplot(122)    
+plot_blue(data)
+sns.kdeplot(x=data.logo2hb, y=data.logo3hb, hue=data.BPT_index, palette=["C0", "C1", "C2"])
+
+plt.show()
 plt.pause(2)
 plt.close()
