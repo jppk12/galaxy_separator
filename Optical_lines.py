@@ -59,6 +59,65 @@ def kewley(x):
 def kauffmann(x):
     return 0.61/(x-0.05)+1.3
 
+#-----------------------------#
+# The Blue Diagram
+#-----------------------------#
+
+def blue_agn(x):
+    return (0.11/(x-0.92)) + 0.85
+    
+def blue_liner(x):
+    return (0.95*x) - 0.40
+    
+def comp_a(x):
+    return -(x-1)**2 - 0.1*x +0.25
+    
+def comp_b(x):
+    return (x-0.2)**2 - 0.60
+    
+#---------------------------------------#
+# The MEx Diagram (Juneau et al., 2014)
+#---------------------------------------#
+def mex_up(col):
+    a0 = 410.24
+    a1 = -109.333
+    a2 = 9.71731
+    a3 = -0.288244
+    
+    l = np.zeros(len(col))
+    for i in range(len(col)):
+        if col[i]<10.0:
+            l[i] = 0.375/(col[i] - 10.5) + 1.14
+        else:
+            l[i] = a0 + (a1*col[i]) + (a2*col[i]**2) + (a3*col[i]**3)
+            
+    return l
+        
+def mex_below(col):
+    a0 = 352.066
+    a1 = -93.8249
+    a2 = 8.32651
+    a3 = -0.246416
+    
+    l = np.zeros(len(col))
+    for i in range(len(col)):
+        if col[i]<9.60:
+            l[i] = 0.375/(col[i] - 10.5) + 1.14
+        else:
+            l[i] = a0 + (a1*col[i]) + (a2*col[i]**2) + (a3*col[i]**3)
+    return l
+
+def cex(u,g):
+    l = np.zeros(len(u))
+    for i in range(len(u)):
+        #l[i] = np.max([1.4 - 1.2*(u[i] - g[i]),-0.1])
+        val = 1.4 - 1.2*(u[i] - g[i])
+        if val<=-0.1:
+            l[i] = -0.1
+        else:
+            l[i] = val
+    return l
+
 def classify(gem_1,ha_ew='HA_EW',n2_ew = 'NIIR_EW'):
         
     k_grp = np.zeros(len(gem_1))
@@ -87,24 +146,23 @@ def classify(gem_1,ha_ew='HA_EW',n2_ew = 'NIIR_EW'):
     whan_index[(gem_1[ha_ew]<0.5)&(gem_1[n2_ew]<0.5)] = 0 #passive
     
     gem_1['WHAN_index'] = whan_index
+    
+    
+    MEx_index = np.zeros(len(gem_1))
+    MEx_index[gem_1.logo3hb<=mex_below(gem_1.logmstar)] = 1
+    MEx_index[(gem_1.logo3hb>mex_below(gem_1.logmstar))&(gem_1.logo3hb<mex_up(gem_1.logmstar))]=2
+    MEx_index[gem_1.logo3hb>mex_up(gem_1.logmstar)] = 3
+    
+    gem_1['MEx_index'] = MEx_index
+    
+    CEx_index = np.zeros(len(gem_1))
+    CEx_index[gem_1.logo3hb<cex(gem_1.absmag_u,gem_1.absmag_g)] = 1
+    CEx_index[gem_1.logo3hb>=cex(gem_1.absmag_u,gem_1.absmag_g)] = 2
+    
+    gem_1['CEx_index'] = CEx_index
+    
     return gem_1
         
-        
-#-----------------------------#
-# The Blue Diagram
-#-----------------------------#
-
-def blue_agn(x):
-    return (0.11/(x-0.92)) + 0.85
-    
-def blue_liner(x):
-    return (0.95*x) - 0.40
-    
-def comp_a(x):
-    return -(x-1)**2 - 0.1*x +0.25
-    
-def comp_b(x):
-    return (x-0.2)**2 - 0.60
 #--------------------#
 # How to plot
 #--------------------#
@@ -198,7 +256,40 @@ def whan_plot(gem_1):
     plt.yscale('log')
     
     plt.xlabel(r'$\rm\log_{10}([NII]/H\alpha)$', fontsize=13)
-    plt.ylabel(r'$\rm\,EW_{H_\alpha}$', fontsize=13)
+    plt.ylabel(r'$\rm EW_{H_\alpha}$', fontsize=13)
+    return
+    
+    
+def MEx_plot(gem_1):
+    x = np.linspace(8,12,1000)
+    
+    sns.scatterplot(x=gem_1.logmstar[gem_1.MEx_index==3], y=gem_1.logo3hb[gem_1.MEx_index==3],marker='^',label='AGN',s=40, edgecolor = 'black')
+    
+    sns.scatterplot(x=gem_1.logmstar[gem_1.MEx_index==2], y=gem_1.logo3hb[gem_1.MEx_index==2],marker='*',label='Composite',s=90, edgecolor = 'black')
+    
+    sns.scatterplot(x=gem_1.logmstar[gem_1.MEx_index==1], y=gem_1.logo3hb[gem_1.MEx_index==1],marker='*', color = 'purple',label='SFG',s=90, edgecolor = 'black')
+    
+    sns.lineplot(x=x, y = mex_up(x), label = 'Juneau et al., (2014)', color = 'black')
+    sns.lineplot(x=x, y = mex_below(x), color = 'black')
+    
+    plt.xlim(8,12)
+    plt.ylim(-2,2)
+    plt.xlabel(r'$\rm\log_{10}(M_*/M_\odot)$', fontsize=13)
+    plt.ylabel(r'$\rm\log_{10}([OIII]/H_\beta)$', fontsize=13)
+    return
+    
+def CEx_plot(gem_1):
+    x = np.linspace(0,2,100)
+    sns.scatterplot(x=gem_1.absmag_u[gem_1.CEx_index==1] - gem_1.absmag_g[gem_1.CEx_index==1], y=gem_1.logo3hb[g09.CEx_index==1],
+                   label = 'SFG')
+    sns.scatterplot(x=gem_1.absmag_u[gem_1.CEx_index==2] - gem_1.absmag_g[gem_1.CEx_index==2], y=gem_1.logo3hb[g09.CEx_index==2],
+                   label = 'AGN')
+    #sns.kdeplot(x=gem_1.absmag_u-gem_1.absmag_g,y=gem_1.logo3hb,hue = gem_1.BPT_index,palette = ['red','blue','green'])
+    plt.scatter(x, cex(x,np.zeros(len(gem_1))))
+    plt.ylim(-1.5,1.5)
+    plt.xlim(0,2)
+    plt.xlabel(r'$u-g$', fontsize=13)
+    plt.ylabel(r'$\rm\log_{10}([OIII]/H\beta)$', fontsize=13)
     return
 #--------------------------------------#
 # Load the data with spectral info
@@ -254,8 +345,8 @@ plt.subplot(122)
 plot_bpt(g23)
 plt.title('G23')
 plt.show(block=False)
-plt.pause(2)
-plt.close()
+#plt.pause(2)
+#plt.close()
 #---------------#
 # Classified data
 #---------------#
@@ -305,8 +396,8 @@ plt.subplot(122)
 plot_blue(g23)
 plt.title('G23')
 plt.show(block=False)
-plt.pause(2)
-plt.close()
+#plt.pause(2)
+#plt.close()
 
 collated_g09 = pd.merge(collated_g09,g09[['component_id','Blue_index']],on='component_id')
 collated_g23 = pd.merge(collated_g23,g23[['Source_Name','Blue_index']],on='Source_Name')
@@ -324,8 +415,44 @@ plt.subplot(122)
 whan_plot(g23)
 plt.title('G23')
 plt.show(block=False)
-plt.pause(2)
-plt.close()
+#plt.pause(2)
+#plt.close()
 
 collated_g09 = pd.merge(collated_g09,g09[['component_id','WHAN_index']],on='component_id')
 collated_g23 = pd.merge(collated_g23,g23[['Source_Name','WHAN_index']],on='Source_Name')
+
+#-----------------#
+# MEx Diagram
+#-----------------#
+plt.figure(figsize=(10,6))    
+
+plt.subplot(121)
+MEx_plot(g09)
+plt.title('G09')
+plt.subplot(122)
+MEx_plot(g23)
+plt.title('G23')
+plt.show(block=False)
+#plt.pause(2)
+#plt.close()
+
+collated_g09 = pd.merge(collated_g09,g09[['component_id','MEx_index']],on='component_id')
+collated_g23 = pd.merge(collated_g23,g23[['Source_Name','MEx_index']],on='Source_Name')
+
+#-----------------#
+# CEx Diagram
+#-----------------#
+plt.figure(figsize=(10,6))    
+
+plt.subplot(121)
+CEx_plot(g09)
+plt.title('G09')
+plt.subplot(122)
+CEx_plot(g23)
+plt.title('G23')
+plt.show(block=False)
+#plt.pause(2)
+#plt.close()
+
+collated_g09 = pd.merge(collated_g09,g09[['component_id','CEx_index']],on='component_id')
+collated_g23 = pd.merge(collated_g23,g23[['Source_Name','CEx_index']],on='Source_Name')
