@@ -107,11 +107,16 @@ def mex_below(col):
             l[i] = a0 + (a1*col[i]) + (a2*col[i]**2) + (a3*col[i]**3)
     return l
 
-def cex(u,g):
-    l = np.zeros(len(u))
-    for i in range(len(u)):
-        #l[i] = np.max([1.4 - 1.2*(u[i] - g[i]),-0.1])
-        val = 1.4 - 1.2*(u[i] - g[i])
+def cex(u_col,g_col):
+    U = u_col - 0.0682 - 0.0140*((u_col-g_col) - 1.2638)
+    B = u_col - 1.0286 - 0.7981*((u_col-g_col) - 1.2638)
+    
+    l = np.zeros(len(u_col))
+    for i in range(len(l)):
+        #l[i] = np.max([1.4 - 1.2*(u_col[i] - g_col[i]),-0.1])
+        #val = 1.4 - 1.2*((0.75*(U[i] - B[i]))-0.81)
+        val = 1.4 - 1.2*(U[i] - B[i])
+        
         if val<=-0.1:
             l[i] = -0.1
         else:
@@ -139,11 +144,11 @@ def classify(gem_1,ha_ew='HA_EW',n2_ew = 'NIIR_EW'):
     gem_1['Blue_index'] = blue_index
     
     whan_index = np.zeros(len(gem_1))
-    whan_index[(gem_1.logn2ha<-0.4)&(gem_1[ha_ew]>3)] = 1 #psf
-    whan_index[(gem_1.logn2ha>-0.4)&(gem_1[ha_ew]>3)&(gem_1[ha_ew]<=6)] = 2 #wagn
-    whan_index[(gem_1.logn2ha>-0.4)&(gem_1[ha_ew]>6)] = 3#sagn
-    whan_index[gem_1[ha_ew]<=3] = 0 #fagn
-    whan_index[(gem_1[ha_ew]<0.5)&(gem_1[n2_ew]<0.5)] = 0 #passive
+    whan_index[(gem_1.logn2ha<-0.4)&(gem_1[ha_ew]>3)] = 2 #psf
+    whan_index[(gem_1.logn2ha>-0.4)&(gem_1[ha_ew]>3)&(gem_1[ha_ew]<=6)] = 3 #wagn
+    whan_index[(gem_1.logn2ha>-0.4)&(gem_1[ha_ew]>6)] = 4#sagn
+    whan_index[gem_1[ha_ew]<=3] = 1 #fagn
+    whan_index[(gem_1[ha_ew]<0.5)&(gem_1[n2_ew]<0.5)] = 1 #passive
     
     gem_1['WHAN_index'] = whan_index
     
@@ -159,6 +164,8 @@ def classify(gem_1,ha_ew='HA_EW',n2_ew = 'NIIR_EW'):
     CEx_index[gem_1.logo3hb<cex(gem_1.absmag_u,gem_1.absmag_g)] = 1
     CEx_index[gem_1.logo3hb>=cex(gem_1.absmag_u,gem_1.absmag_g)] = 2
     
+    #CEx_index[gem_1.logo3hb<cex(-2.5*np.log10(gem_1.flux_ut/3631),-2.5*np.log10(gem_1.flux_gt/3631))] = 1
+    #CEx_index[gem_1.logo3hb>=cex(-2.5*np.log10(gem_1.flux_ut/3631),-2.5*np.log10(gem_1.flux_gt/3631))] = 2 
     gem_1['CEx_index'] = CEx_index
     
     return gem_1
@@ -171,7 +178,7 @@ def plot_bpt(gem_1):
     x_kauf=np.linspace(-5,0,len(gem_1))
     x_line = np.linspace(-0.2,1,100)
     
-    sns.scatterplot(x=gem_1.logn2ha[gem_1.BPT_index==1],      y=gem_1.logo3hb[gem_1.BPT_index==1],marker='^',label='AGN',s=40, edgecolor = 'black')
+    sns.scatterplot(x=gem_1.logn2ha[gem_1.BPT_index==1], y=gem_1.logo3hb[gem_1.BPT_index==1],marker='^',label='AGN',s=40, edgecolor = 'black')
     
     sns.scatterplot(x=gem_1.logn2ha[gem_1.BPT_index==4], y=gem_1.logo3hb[gem_1.BPT_index==4],marker='*',label='Composite',s=90, edgecolor = 'black')
     
@@ -227,7 +234,7 @@ def plot_blue(gem_1):
     plt.legend(fontsize=12,markerscale=1.2,frameon=True)
     plt.xticks(fontsize=12)
     plt.yticks(fontsize=12)
-    plt.xlabel(r'$\rm\log_{10}([NII]/H\alpha)$', fontsize=13)
+    plt.xlabel(r'$\rm\log_{10}([OII]/H\beta)$', fontsize=13)
     plt.ylabel(r'$\rm\log_{10}([OIII]/H\beta)$', fontsize=13)
     plt.xlim(-2,2)
     plt.ylim(-1.8,1.6)
@@ -238,13 +245,13 @@ def plot_blue(gem_1):
     
 def whan_plot(gem_1):
     
-    sns.scatterplot(x=gem_1.logn2ha[gem_1.WHAN_index==3], y=gem_1.HA_EW[gem_1.WHAN_index==3],marker='^',label='sAGN',s=40, edgecolor = 'black')
+    sns.scatterplot(x=gem_1.logn2ha[gem_1.WHAN_index==4], y=gem_1.HA_EW[gem_1.WHAN_index==4],marker='^',label='sAGN',s=40, edgecolor = 'black')
     
-    sns.scatterplot(x=gem_1.logn2ha[gem_1.WHAN_index==2], y=gem_1.HA_EW[gem_1.WHAN_index==2],marker='^',label='wAGN',s=40, edgecolor = 'black')
+    sns.scatterplot(x=gem_1.logn2ha[gem_1.WHAN_index==3], y=gem_1.HA_EW[gem_1.WHAN_index==3],marker='^',label='wAGN',s=40, edgecolor = 'black')
     
-    sns.scatterplot(x=gem_1.logn2ha[gem_1.WHAN_index==1], y=gem_1.HA_EW[gem_1.WHAN_index==1],marker='*', color = 'purple',label='SFG',s=40, edgecolor = 'black')
+    sns.scatterplot(x=gem_1.logn2ha[gem_1.WHAN_index==2], y=gem_1.HA_EW[gem_1.WHAN_index==2],marker='*', color = 'purple',label='SFG',s=40, edgecolor = 'black')
     
-    sns.scatterplot(x=gem_1.logn2ha[gem_1.WHAN_index==0], y=gem_1.HA_EW[gem_1.WHAN_index==0],marker='*', color = 'magenta',label='Retired & Passive',s=90, edgecolor = 'black')
+    sns.scatterplot(x=gem_1.logn2ha[gem_1.WHAN_index==1], y=gem_1.HA_EW[gem_1.WHAN_index==1],marker='*', color = 'magenta',label='Retired & Passive',s=90, edgecolor = 'black')
 
     
     plt.plot([-0.4,-0.4],[3,1e3],linestyle='--', color='black')
@@ -279,7 +286,7 @@ def MEx_plot(gem_1):
     return
     
 def CEx_plot(gem_1):
-    x = np.linspace(0,2,100)
+    x = np.linspace(0,2,len(gem_1))
     sns.scatterplot(x=gem_1.absmag_u[gem_1.CEx_index==1] - gem_1.absmag_g[gem_1.CEx_index==1], y=gem_1.logo3hb[g09.CEx_index==1],
                    label = 'SFG')
     sns.scatterplot(x=gem_1.absmag_u[gem_1.CEx_index==2] - gem_1.absmag_g[gem_1.CEx_index==2], y=gem_1.logo3hb[g09.CEx_index==2],
@@ -345,8 +352,8 @@ plt.subplot(122)
 plot_bpt(g23)
 plt.title('G23')
 plt.show(block=False)
-#plt.pause(2)
-#plt.close()
+plt.pause(2)
+plt.close()
 #---------------#
 # Classified data
 #---------------#
@@ -396,8 +403,8 @@ plt.subplot(122)
 plot_blue(g23)
 plt.title('G23')
 plt.show(block=False)
-#plt.pause(2)
-#plt.close()
+plt.pause(2)
+plt.close()
 
 collated_g09 = pd.merge(collated_g09,g09[['component_id','Blue_index']],on='component_id')
 collated_g23 = pd.merge(collated_g23,g23[['Source_Name','Blue_index']],on='Source_Name')
@@ -415,8 +422,8 @@ plt.subplot(122)
 whan_plot(g23)
 plt.title('G23')
 plt.show(block=False)
-#plt.pause(2)
-#plt.close()
+plt.pause(2)
+plt.close()
 
 collated_g09 = pd.merge(collated_g09,g09[['component_id','WHAN_index']],on='component_id')
 collated_g23 = pd.merge(collated_g23,g23[['Source_Name','WHAN_index']],on='Source_Name')
@@ -433,8 +440,8 @@ plt.subplot(122)
 MEx_plot(g23)
 plt.title('G23')
 plt.show(block=False)
-#plt.pause(2)
-#plt.close()
+plt.pause(2)
+plt.close()
 
 collated_g09 = pd.merge(collated_g09,g09[['component_id','MEx_index']],on='component_id')
 collated_g23 = pd.merge(collated_g23,g23[['Source_Name','MEx_index']],on='Source_Name')
@@ -444,15 +451,32 @@ collated_g23 = pd.merge(collated_g23,g23[['Source_Name','MEx_index']],on='Source
 #-----------------#
 plt.figure(figsize=(10,6))    
 
-plt.subplot(121)
+plt.subplot(221)
 CEx_plot(g09)
 plt.title('G09')
-plt.subplot(122)
+plt.subplot(222)
 CEx_plot(g23)
 plt.title('G23')
+
+plt.subplot(223)
+sns.kdeplot(x=g09.absmag_u-g09.absmag_g,y=g09.logo3hb,hue = g09.BPT_index,palette = ['red','blue','green'])
+plt.scatter(np.linspace(0,2,len(g09)), cex(np.linspace(0,2,len(g09)),np.zeros(len(g09))))
+plt.ylim(-1.5,1.5)
+plt.xlim(0,2)
+plt.xlabel(r'$u-g$', fontsize=13)
+plt.ylabel(r'$\rm\log_{10}([OIII]/H\beta)$', fontsize=13)
+
+plt.subplot(224)
+sns.kdeplot(x=g23.absmag_u-g23.absmag_g,y=g23.logo3hb,hue = g23.BPT_index,palette = ['red','blue','green'])
+plt.scatter(np.linspace(0,2,len(g23)), cex(np.linspace(0,2,len(g23)),np.zeros(len(g23))))
+plt.ylim(-1.5,1.5)
+plt.xlim(0,2)
+plt.xlabel(r'$u-g$', fontsize=13)
+plt.ylabel('')
+
 plt.show(block=False)
-#plt.pause(2)
-#plt.close()
+plt.pause(2)
+plt.close()
 
 collated_g09 = pd.merge(collated_g09,g09[['component_id','CEx_index']],on='component_id')
 collated_g23 = pd.merge(collated_g23,g23[['Source_Name','CEx_index']],on='Source_Name')
