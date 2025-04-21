@@ -358,11 +358,12 @@ plt.close()
 # Classified data
 #---------------#
 cols = ['island_id', 'component_id', 'component_name','uberID','CATAID', 'ra_catwise',
-       'dec_catwise', 'ra_hms_cont', 'dec_dms_cont', 'ra_deg_cont',
-       'dec_deg_cont','BPT_index']
+       'dec_catwise','ra_deg_cont','dec_deg_cont','logn2ha',
+       'logo3hb','logo2hb','HA_EW','absmag_u','absmag_g','logmstar','BPT_index']
 collated_g09 = g09[cols]
 
-cols = ['Source_Name', 'uberID','CATAID','RA', 'DEC','BPT_index']
+cols = ['Source_Name', 'uberID','CATAID','RA', 'DEC','logn2ha','logo3hb','logo2hb',
+        'HA_EW','absmag_u','absmag_g','logmstar','BPT_index']
 collated_g23 = g23[cols]
 
 #-------------#
@@ -480,3 +481,6 @@ plt.close()
 
 collated_g09 = pd.merge(collated_g09,g09[['component_id','CEx_index']],on='component_id')
 collated_g23 = pd.merge(collated_g23,g23[['Source_Name','CEx_index']],on='Source_Name')
+
+collated_g09.to_csv('G09_opt_indices.csv')
+collated_g23.to_csv('G23_opt_indices.csv')
