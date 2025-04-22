@@ -55,6 +55,7 @@ def radio_classify(gem_1, radio_flux, ir_mag, conv = 29.045, scale = 1e-3):
     radio_flux = gem_1[radio_flux]*scale
     radio_index[radio_flux>ir_flux] = 1
     gem_1['W3_flux'] = ir_flux
+    gem_1['radio_flux'] = radio_flux
     gem_1['radio_index'] = radio_index
     
     return gem_1
@@ -78,7 +79,7 @@ def radio_plot(gem_1, w1, w2, scale = 1e-3):
 					
     sns.lineplot(x=wise_x,y=wise_x,label='One-to-One',color='black')
     #plt.ylim(-1,2)
-    plt.xlabel(r'$\rm S_{943\,MHz}\,(Jy)$', fontsize=13)
+    #plt.xlabel(r'$\rm S_{943\,MHz}\,(Jy)$', fontsize=13)
     plt.ylabel(r'$\rm S_{W3}\,(Jy)$', fontsize=13)
     plt.legend(fontsize=12)
     return
@@ -86,10 +87,43 @@ def radio_plot(gem_1, w1, w2, scale = 1e-3):
 plt.figure(figsize=(10,6))
 plt.subplot(121)
 radio_plot(g09_allwise,'flux_int','W3_flux')
+plt.xlabel(r'$\rm S_{943\,MHz}\,(Jy)$', fontsize=13)
 plt.title('G09')
 
 plt.subplot(122)
 radio_plot(g23_allwise,'Total_flux','W3_flux', scale = 1)
+plt.xlabel(r'$\rm S_{888\,MHz}\,(Jy)$', fontsize=13)
 plt.title('G23')
-
 plt.show(block=False)
+plt.pause(2)
+plt.close()
+#-----------------#
+# Saving the data
+#-----------------#
+# Radio
+cols = ['island_id', 'component_id', 'component_name', 'ra_catwise','dec_catwise','ra_allwise',
+        'dec_allwise','ra_deg_cont','dec_deg_cont','W1mag','W2mag','W3mag','W4mag','W3_flux',
+        'radio_flux','radio_index']
+collated_g09 = g09_allwise[cols]
+
+cols = ['Source_Name','RA', 'DEC','RAJ2000','DEJ2000','W1mag','W2mag','W3mag','W4mag',
+        'W3_flux','radio_flux','radio_index']
+collated_g23 = g23_allwise[cols]
+
+collated_g09.to_csv('g09_radio_indices.csv')
+collated_g23.to_csv('g23_radio_indices.csv')
+
+# X-ray
+cols = ['island_id', 'component_id', 'component_name','UID','ra_catwise','dec_catwise','ra_deg_cont','dec_deg_cont',
+        'e_FW1pm','W2_fluxpm','e_FW2pm','W1mproPM','e_W1mproPM','W2mproPM','e_W2mproPM',
+        'W1_fluxpm','ML_FLUX_0','ML_FLUX_1','X_index']
+        
+collated_main = cols = ['island_id', 'component_id', 'component_name','UID','ra_catwise','dec_catwise','ra_deg_cont','dec_deg_cont',
+        'e_FW1pm','W2_fluxpm','e_FW2pm','W1mproPM','e_W1mproPM','W2mproPM','e_W2mproPM',
+        'W1_fluxpm','ML_FLUX_0','ML_FLUX_1','X_index']
+        
+collated_main = g09_main[cols[:16]+cols[17:]]
+collated_hard = g09_hard[cols[:17]+cols[18:]]
+
+collated_main.to_csv('g09main_xray_indices.csv')
+collated_hard.to_csv('g09hard_xray_indices.csv')
