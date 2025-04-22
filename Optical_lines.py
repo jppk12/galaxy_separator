@@ -154,15 +154,15 @@ def classify(gem_1,ha_ew='HA_EW',n2_ew = 'NIIR_EW'):
     
     
     MEx_index = np.zeros(len(gem_1))
-    MEx_index[gem_1.logo3hb<=mex_below(gem_1.logmstar)] = 1
+    MEx_index[gem_1.logo3hb<=mex_below(gem_1.logmstar)] = 1 # SFG
     MEx_index[(gem_1.logo3hb>mex_below(gem_1.logmstar))&(gem_1.logo3hb<mex_up(gem_1.logmstar))]=2
-    MEx_index[gem_1.logo3hb>mex_up(gem_1.logmstar)] = 3
+    MEx_index[gem_1.logo3hb>mex_up(gem_1.logmstar)] = 3 #AGN
     
     gem_1['MEx_index'] = MEx_index
     
     CEx_index = np.zeros(len(gem_1))
-    CEx_index[gem_1.logo3hb<cex(gem_1.absmag_u,gem_1.absmag_g)] = 1
-    CEx_index[gem_1.logo3hb>=cex(gem_1.absmag_u,gem_1.absmag_g)] = 2
+    CEx_index[gem_1.logo3hb<cex(gem_1.absmag_u,gem_1.absmag_g)] = 1 # SFG
+    CEx_index[gem_1.logo3hb>=cex(gem_1.absmag_u,gem_1.absmag_g)] = 2 # AGN
     
     #CEx_index[gem_1.logo3hb<cex(-2.5*np.log10(gem_1.flux_ut/3631),-2.5*np.log10(gem_1.flux_gt/3631))] = 1
     #CEx_index[gem_1.logo3hb>=cex(-2.5*np.log10(gem_1.flux_ut/3631),-2.5*np.log10(gem_1.flux_gt/3631))] = 2 
