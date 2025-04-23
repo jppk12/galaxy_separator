@@ -64,6 +64,7 @@ def list_files_in_directory(folder_path):
   return file_names
 
 files = list_files_in_directory(path_2)
+del files[2]
 
 os.chdir(path_2)
 #-------------------#
@@ -96,6 +97,7 @@ g23_radio = pd.read_csv(files[1])
 #------------------------#
 # Diagnostic comparison
 #------------------------#
+#G09
 # Optical Index
 Optical_index = np.zeros(len(g09_opt))
 Optical_index[(g09_opt.BPT_index==1)|(g09_opt.Blue_index==3)|(g09_opt.Blue_index==4)|(g09_opt.WHAN_index==3)|
@@ -133,9 +135,47 @@ g09_radio_ir = g09_radio.merge(g09_ir[['component_id','assef_index','mat_index',
 g09_opt_ir_radio = g09_ir_opt.merge(g09_radio[['component_id','radio_index']],on=['component_id'],how='inner')
     # len(g09_opt_ir_radio[(g09_opt_ir_radio.Optical_index==1)&(g09_opt_ir_radio.IR_index==1)&(g09_opt_ir_radio.radio_index==1)])
 
+# G23
+Optical_index = np.zeros(len(g23_opt))
+Optical_index[(g23_opt.BPT_index==1)|(g23_opt.Blue_index==3)|(g23_opt.Blue_index==4)|(g23_opt.WHAN_index==3)|
+              (g23_opt.WHAN_index==4)|(g23_opt.MEx_index==3)|(g23_opt.CEx_index==2)] = 1
+g23_opt['Optical_index'] = Optical_index
+
+# IR Index
+g23_ir = g23_catwise.merge(g23_allwise[['Source_Name','mat_index']],on=['Source_Name'],how='inner')
+IR_index = np.zeros(len(g23_ir))
+IR_index[(g23_ir.assef_index==1)|(g23_ir.mat_index==1)] = 1
+g23_ir['IR_index'] = IR_index
+
+# X-ray combinations
+#g23_opt_xray = g23_opt.merge(g23_Xray[['Source_Name','X_index']], on=['Source_Name'], how='inner')
+    #len(g23_opt_xray[(g23_opt_xray.Optical_index==1)&(g23_opt_xray.X_index==1)]) X-ray+opt
+    #g23_opt.Optical_index.value_counts().values[g23_opt.Optical_index.value_counts().keys()==1][0] Opt
+#g23_ir_xray = g23_ir.merge(g23_Xray[['Source_Name','X_index']], on=['Source_Name'], how='inner') #0
+#g23_radio_xray = g23_radio.merge(g23_Xray[['Source_Name','X_index']], on=['Source_Name'], how='inner') #0
+
+# Optical combinations
+g23_ir_opt = g23_ir.merge(g23_opt[['Source_Name','BPT_index','Blue_index','WHAN_index','MEx_index','CEx_index',
+                          'Optical_index']],on=['Source_Name'],how='inner')
+                          #len(g23_ir_opt[(g23_ir_opt.Optical_index==1)&(g23_ir_opt.IR_index==1)]) IR+opt
+g23_radio_opt = g23_radio.merge(g23_opt[['Source_Name','BPT_index','Blue_index','WHAN_index','MEx_index','CEx_index',
+                          'Optical_index']],on=['Source_Name'],how='inner')
+            #len(g23_radio_opt[(g23_radio_opt.Optical_index==1)|(g23_radio_opt.radio_index==1)]) Radio+opt
+
+# IR combinations
+g23_radio_ir = g23_radio.merge(g23_ir[['Source_Name','assef_index','mat_index','IR_index']],on=['Source_Name'],
+                                how = 'inner')
+#len(g23_radio_ir[(g23_radio_ir.IR_index==1)&(g23_radio_ir.radio_index==1)]) # Radio+IR
+
+
+# Optical-IR-radio
+g23_opt_ir_radio = g23_ir_opt.merge(g23_radio[['Source_Name','radio_index']],on=['Source_Name'],how='inner')
+    # len(g23_opt_ir_radio[(g23_opt_ir_radio.Optical_index==1)&(g23_opt_ir_radio.IR_index==1)&(g23_opt_ir_radio.radio_index==1)])
+
 #------------#
 # UpSet plot
 #------------#
+# G09
 data = from_memberships(
     [
         ('X-ray',),
@@ -151,6 +191,36 @@ data = from_memberships(
     [324, 4598, 6136, 22807, 62, 373, 552, 2637, 47]
 )
 
+
 UpSet(data).plot()
 plt.yscale('log')
-plt.show()
+plt.title('G09')
+
+plt.savefig('../Plots/G09-upset.png',format='png')
+plt.show(block=False)
+plt.pause(2)
+plt.close()
+
+# G23
+data = from_memberships(
+    [
+        ('Optical',),
+        ('IR',),
+        ('Radio',),
+        ('Optical','IR'),
+        ('Optical','Radio'),
+        ('IR','Radio'),
+        ('Optical', 'IR', 'Radio')
+        
+    ],
+    [3663,4116,11649,285,4325,1929,32]
+)
+
+UpSet(data).plot()
+plt.yscale('log')
+plt.title('G23')
+
+plt.savefig('../Plots/G23-upset.png',format='png')
+plt.show(block=False)
+plt.pause(2)
+plt.close()
