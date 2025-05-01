@@ -73,6 +73,9 @@ os.chdir(path_2)
 # X-ray
 g09_main = pd.read_csv(files[0])
 g09_hard = pd.read_csv(files[4])
+g09_hard.index = [323, 324]
+g09_main = fix_col(g09_main)
+g09_hard = fix_col(g09_hard)
 
 g09_hard.rename({'ML_FLUX_0':'X_flux'},axis=1,inplace=True)
 g09_main.rename({'ML_FLUX_1':'X_flux'},axis=1,inplace=True)
@@ -87,8 +90,8 @@ g23_opt = pd.read_csv(files[-3])
 g09_allwise = pd.read_csv(files[-4])
 g23_allwise = pd.read_csv(files[-5])
 
-g09_catwise = pd.read_csv(files[-2])
-g23_catwise = pd.read_csv(files[3])
+#g09_catwise = pd.read_csv(files[-2])
+#g23_catwise = pd.read_csv(files[3])
 
 # Radio
 g09_radio = pd.read_csv(files[2])
@@ -105,35 +108,50 @@ Optical_index[(g09_opt.BPT_index==1)|(g09_opt.Blue_index==3)|(g09_opt.Blue_index
 g09_opt['Optical_index'] = Optical_index
 
 # IR Index
-g09_ir = g09_catwise.merge(g09_allwise[['component_id','mat_index']],on=['component_id'],how='inner')
+#g09_ir = g09_catwise.merge(g09_allwise[['component_id','W1mag','W2mag','W3mag','W4mag','Kmag','mat_index']],
+#                           on=['component_id'],how='inner')
+g09_ir = g09_allwise
 IR_index = np.zeros(len(g09_ir))
 IR_index[(g09_ir.assef_index==1)|(g09_ir.mat_index==1)] = 1
 g09_ir['IR_index'] = IR_index
-
 # X-ray combinations
-g09_opt_xray = g09_opt.merge(g09_Xray[['component_id','X_index']], on=['component_id'], how='inner')
+g09_opt_xray = g09_opt.merge(g09_Xray[['component_id','W1_fluxpm','X_flux','X_index']], 
+                             on=['component_id'], how='inner')
     #len(g09_opt_xray[(g09_opt_xray.Optical_index==1)&(g09_opt_xray.X_index==1)]) X-ray+opt
     #g09_opt.Optical_index.value_counts().values[g09_opt.Optical_index.value_counts().keys()==1][0] Opt
-g09_ir_xray = g09_ir.merge(g09_Xray[['component_id','X_index']], on=['component_id'], how='inner') #0
-g09_radio_xray = g09_radio.merge(g09_Xray[['component_id','X_index']], on=['component_id'], how='inner') #0
-
+g09_ir_xray = g09_ir.merge(g09_Xray[['component_id','W1_fluxpm','X_flux','X_index']], 
+                           on=['component_id'], how='inner') #0
+    #len(g09_ir_xray[(g09_ir_xray.IR_index==1)&(g09_ir_xray.X_index==1)])
+g09_radio_xray = g09_radio.merge(g09_Xray[['component_id','W1_fluxpm','X_flux','X_index']], 
+                                 on=['component_id'], how='inner') #0
+    #len(g09_radio_xray[(g09_radio_xray.radio_index==1)&(g09_radio_xray.X_index==1)])
 # Optical combinations
-g09_ir_opt = g09_ir.merge(g09_opt[['component_id','BPT_index','Blue_index','WHAN_index','MEx_index','CEx_index',
+g09_ir_opt = g09_ir.merge(g09_opt[['component_id','logn2ha','logo3hb','logo2hb','HA_EW','absmag_u',
+                          'absmag_g','logmstar','BPT_index','Blue_index','WHAN_index','MEx_index','CEx_index',
                           'Optical_index']],on=['component_id'],how='inner')
-                          #len(g09_ir_opt[(g09_ir_opt.Optical_index==1)&(g09_ir_opt.IR_index==1)]) IR+opt
-g09_radio_opt = g09_radio.merge(g09_opt[['component_id','BPT_index','Blue_index','WHAN_index','MEx_index','CEx_index',
-                          'Optical_index']],on=['component_id'],how='inner')
-                          #len(g09_radio_opt[(g09_radio_opt.Optical_index==1)|(g09_radio_opt.radio_index==1)]) Radio+opt
+    #len(g09_ir_opt[(g09_ir_opt.Optical_index==1)&(g09_ir_opt.IR_index==1)]) IR+opt
+g09_radio_opt = g09_radio.merge(g09_opt[['component_id','logn2ha','logo3hb','logo2hb','HA_EW','absmag_u',
+                                'absmag_g','logmstar','BPT_index','Blue_index','WHAN_index','MEx_index','CEx_index',
+                                'Optical_index']],on=['component_id'],how='inner')
+     #len(g09_radio_opt[(g09_radio_opt.Optical_index==1)|(g09_radio_opt.radio_index==1)]) Radio+opt
 
 # IR combinations
-g09_radio_ir = g09_radio.merge(g09_ir[['component_id','assef_index','mat_index','IR_index']],on=['component_id'],
-                                how = 'inner')
+g09_radio_ir = g09_radio.merge(g09_ir[['component_id','W1mag','W2mag','W3mag','W4mag','assef_index','mat_index',
+                              'IR_index']],on=['component_id'],how = 'inner')
 #len(g09_radio_ir[(g09_radio_ir.IR_index==1)&(g09_radio_ir.radio_index==1)])
 
 
 # Optical-IR-radio
-g09_opt_ir_radio = g09_ir_opt.merge(g09_radio[['component_id','radio_index']],on=['component_id'],how='inner')
+g09_opt_ir_radio = g09_ir_opt.merge(g09_radio[['component_id','W3_flux','radio_flux','radio_index']],
+                                    on=['component_id'],how='inner')
     # len(g09_opt_ir_radio[(g09_opt_ir_radio.Optical_index==1)&(g09_opt_ir_radio.IR_index==1)&(g09_opt_ir_radio.radio_index==1)])
+
+# X-ray-Optical-IR_Radio
+g09_Xray_opt_ir_radio = g09_opt_ir_radio.merge(g09_Xray[['component_id','W1_fluxpm','X_flux','X_index']],
+                                               on=['component_id'],how='inner')
+                                               
+#len(g09_Xray_opt_ir_radio[(g09_Xray_opt_ir_radio.X_index==1)&(g09_Xray_opt_ir_radio.Optical_index==1)&
+#                          (g09_Xray_opt_ir_radio.IR_index==1)&(g09_Xray_opt_ir_radio.radio_index==1)])
 
 # G23
 Optical_index = np.zeros(len(g23_opt))
@@ -142,7 +160,8 @@ Optical_index[(g23_opt.BPT_index==1)|(g23_opt.Blue_index==3)|(g23_opt.Blue_index
 g23_opt['Optical_index'] = Optical_index
 
 # IR Index
-g23_ir = g23_catwise.merge(g23_allwise[['Source_Name','mat_index']],on=['Source_Name'],how='inner')
+#g23_ir = g23_catwise.merge(g23_allwise[['Source_Name','mat_index']],on=['Source_Name'],how='inner')
+g23_ir = g23_allwise
 IR_index = np.zeros(len(g23_ir))
 IR_index[(g23_ir.assef_index==1)|(g23_ir.mat_index==1)] = 1
 g23_ir['IR_index'] = IR_index
@@ -183,12 +202,15 @@ data = from_memberships(
         ('IR',),
         ('Radio',),
         ('X-ray', 'Optical'),
+        ('X-ray', 'IR'),
+        ('X-ray', 'Radio'),
         ('Optical', 'IR'),
         ('Optical','Radio'),
         ('IR','Radio'),
-        ('Optical', 'IR', 'Radio')
+        ('Optical', 'IR', 'Radio'),
+        ('X-ray','Optical', 'IR', 'Radio')
     ],
-    [324, 4598, 6136, 22807, 62, 373, 552, 2637, 47]
+    [324, 4598, 6136, 22807, 62, 203, 124, 373, 552, 2637, 47, 7]
 )
 
 
